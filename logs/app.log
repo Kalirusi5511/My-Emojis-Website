@@ -1,0 +1,7 @@
+2026-10-09 16:44:29 | INFO     | Server startet...
+2026-10-09 16:44:30 | INFO     | 📦 Generiere Emojis (erster Start)...
+2026-10-09 16:44:30 | INFO     |    → 1899 Emojis generiert
+2026-10-09 16:44:30 | INFO     | 💾 In DB gespeichert: C:\Users\Kay\Downloads\bot15080775011173786-v2-main\new\Emojis Website Local and Public\emoji-server\data\emojis.db
+2026-10-09 16:44:38 | INFO     | → GET /
+2026-10-09 16:44:38 | INFO     | → GET /api/emojis
+2026-10-09 16:44:38 | INFO     | → GET /api/stats
