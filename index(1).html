@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚀 Emoji Ultra</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f14;
+    --card: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #8b5cf6;
+    --accent-2: #ec4899;
+    --success: #10b981;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: #fff;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 12px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2), #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .info { text-align: center; color: #888; font-size: 0.75rem; margin-bottom: 12px; }
+
+  .stats {
+    text-align: center;
+    color: #10b981;
+    font-size: 0.7rem;
+    margin-bottom: 8px;
+    font-family: monospace;
+  }
+
+  .server-badge {
+    text-align: center;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    background: var(--card);
+    color: #888;
+    border: 1px solid var(--border);
+  }
+
+  .server-badge.online { color: var(--success); border-color: var(--success); }
+  .server-badge.offline { color: #ef4444; border-color: #ef4444; }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    margin: 12px 0;
+    position: sticky;
+    top: 0;
+    background: rgba(15, 15, 20, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 10px 0;
+    z-index: 100;
+  }
+
+  .search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: #fff;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .search:focus { border-color: var(--accent); }
+
+  .size-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: #ccc;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+
+  .size-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .counter {
+    text-align: center;
+    color: #666;
+    font-size: 0.75rem;
+    margin-bottom: 10px;
+  }
+
+  .grid-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 8px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .grid.large { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); }
+  .grid.xl { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
+
+  .e {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    border-radius: 6px;
+    user-select: none;
+    line-height: 1;
+    background: transparent;
+    transition: transform 0.1s, background 0.1s;
+  }
+
+  .grid.large .e { font-size: 34px; }
+  .grid.xl .e { font-size: 46px; }
+
+  .e:hover {
+    background: #2a2a3a;
+    transform: scale(1.2);
+    z-index: 10;
+    position: relative;
+  }
+
+  .e:active {
+    transform: scale(1.1);
+    background: var(--accent);
+  }
+
+  .e.copied {
+    background: var(--success) !important;
+    animation: pulse 0.3s;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--success);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .loader {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.3s;
+  }
+
+  .loader.hidden { opacity: 0; pointer-events: none; }
+
+  .loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .loader-text {
+    margin-top: 16px;
+    color: #888;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-spinner"></div>
+  <div class="loader-text" id="loaderText">⏳ Verbinde mit Server...</div>
+</div>
+
+<h1>🚀 Emoji Ultra</h1>
+<p class="info">Emojis aus SQLite-Datenbank</p>
+
+<div style="text-align: center; margin-bottom: 8px;">
+  <span class="server-badge" id="serverBadge">🔌 Verbinde...</span>
+</div>
+
+<div class="stats" id="stats">Bereit</div>
+
+<div class="toolbar">
+  <input type="text" class="search" id="search" placeholder="🔍 Suchen (z.B. 1f600, fire, coin)..." autocomplete="off" spellcheck="false">
+  <button class="size-btn active" data-size="small">Klein</button>
+  <button class="size-btn" data-size="large">Mittel</button>
+  <button class="size-btn" data-size="xl">Groß</button>
+</div>
+
+<div class="counter" id="counter">⏳ Lade...</div>
+
+<div class="grid-container">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="toast" id="toast">✅ Kopiert!</div>
+
+<script>
+// ============================================================
+// KONFIGURATION
+// ============================================================
+const API_BASE = window.location.origin;
+const API_EMOJIS = API_BASE + '/api/emojis';
+const API_STATS = API_BASE + '/api/stats';
+
+// ============================================================
+// STATE
+// ============================================================
+const STATE = {
+  all: [],
+  filtered: [],
+  rendered: 0,
+  batchSize: 500,
+  isRendering: false,
+  timings: {}
+};
+
+// ============================================================
+// DOM
+// ============================================================
+const $ = (id) => document.getElementById(id);
+const now = () => performance.now();
+
+const grid = $('grid');
+const search = $('search');
+const counter = $('counter');
+const toast = $('toast');
+const loader = $('loader');
+const loaderText = $('loaderText');
+const stats = $('stats');
+const serverBadge = $('serverBadge');
+const sizeBtns = document.querySelectorAll('.size-btn');
+
+// ============================================================
+// SERVER-STATUS
+// ============================================================
+function setServerStatus(online, text) {
+  serverBadge.textContent = text;
+  serverBadge.className = 'server-badge ' + (online ? 'online' : 'offline');
+}
+
+// ============================================================
+// EMOJIS VOM SERVER LADEN
+// ============================================================
+async function fetchEmojis() {
+  const t0 = now();
+  const res = await fetch(API_EMOJIS);
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const data = await res.json();
+
+  if (!data.emojis || !Array.isArray(data.emojis)) {
+    throw new Error('Ungültiges Format');
+  }
+
+  STATE.timings.server = (now() - t0).toFixed(1);
+  setServerStatus(true, `🟢 Server online (${data.emojis.length} Emojis)`);
+  return data.emojis;
+}
+
+// ============================================================
+// DB-STATS LADEN
+// ============================================================
+async function fetchDbStats() {
+  try {
+    const res = await fetch(API_STATS);
+    const data = await res.json();
+    console.log(`💾 DB: ${data.total} Emojis, ${data.db_size_kb} KB`);
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ============================================================
+// RENDER-BATCH
+// ============================================================
+function renderBatch() {
+  if (STATE.isRendering) return;
+  if (STATE.rendered >= STATE.filtered.length) return;
+
+  STATE.isRendering = true;
+  const t0 = now();
+
+  const start = STATE.rendered;
+  const end = Math.min(start + STATE.batchSize, STATE.filtered.length);
+
+  const fragment = document.createDocumentFragment();
+
+  for (let i = start; i < end; i++) {
+    const emoji = STATE.filtered[i];
+    const div = document.createElement('div');
+    div.className = 'e';
+    div.textContent = emoji;
+    div.dataset.emoji = emoji;
+    fragment.appendChild(div);
+  }
+
+  grid.appendChild(fragment);
+  STATE.rendered = end;
+  STATE.isRendering = false;
+
+  if (STATE.rendered >= STATE.filtered.length) {
+    counter.textContent = `${STATE.filtered.length.toLocaleString()} Emojis komplett geladen`;
+  } else {
+    counter.textContent = `${STATE.rendered.toLocaleString()} von ${STATE.filtered.length.toLocaleString()} (scrollen für mehr)`;
+  }
+
+  STATE.timings.render = (now() - t0).toFixed(1);
+  updateStats();
+
+  requestAnimationFrame(() => {
+    if (window.scrollY + window.innerHeight >= document.body.scrollHeight - 500) {
+      renderBatch();
+    }
+  });
+}
+
+// ============================================================
+// RESET & NEU RENDERN
+// ============================================================
+function resetAndRender(newList) {
+  grid.innerHTML = "";
+  STATE.filtered = newList;
+  STATE.rendered = 0;
+  renderBatch();
+}
+
+// ============================================================
+// SCROLL-HANDLER
+// ============================================================
+let scrollRaf = null;
+window.addEventListener('scroll', () => {
+  if (scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => {
+    if (window.scrollY + window.innerHeight >= document.body.scrollHeight - 500) {
+      renderBatch();
+    }
+    scrollRaf = null;
+  });
+}, { passive: true });
+
+// ============================================================
+// CLICK-DELEGATION
+// ============================================================
+grid.addEventListener('click', (e) => {
+  const t = e.target.closest('.e');
+  if (!t) return;
+  copyEmoji(t.dataset.emoji, t);
+});
+
+// ============================================================
+// COPY
+// ============================================================
+async function copyEmoji(emoji, el) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(emoji);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = emoji;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    showToast('✅ ' + emoji + ' kopiert!');
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 400);
+  } catch (err) {
+    alert('Kopieren fehlgeschlagen: ' + emoji);
+  }
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimeout;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toast.classList.remove('show'), 1000);
+}
+
+// ============================================================
+// SIZE BUTTONS
+// ============================================================
+sizeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    sizeBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const s = btn.dataset.size;
+    grid.classList.remove('large', 'xl');
+    if (s === 'large') grid.classList.add('large');
+    if (s === 'xl') grid.classList.add('xl');
+  });
+});
+
+// ============================================================
+// SUCHE
+// ============================================================
+let searchTimeout;
+search.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    const term = search.value.toLowerCase().trim();
+    const t0 = now();
+
+    if (!term) {
+      STATE.filtered = STATE.all;
+    } else {
+      STATE.filtered = STATE.all.filter(e => {
+        const c = e.codePointAt(0);
+        return c.toString(16).includes(term) || e.includes(term);
+      });
+    }
+
+    STATE.timings.filter = (now() - t0).toFixed(1);
+    window.scrollTo({ top: 0 });
+    resetAndRender(STATE.filtered);
+  }, 120);
+});
+
+// ============================================================
+// STATS
+// ============================================================
+function updateStats() {
+  const t = STATE.timings;
+  stats.textContent =
+    `⚡ Server: ${t.server || '–'}ms | Render: ${t.render || '–'}ms | Filter: ${t.filter || '–'}ms`;
+}
+
+// ============================================================
+// INITIALISIERUNG
+// ============================================================
+async function init() {
+  loaderText.textContent = '🌐 Lade Emojis aus DB...';
+
+  try {
+    // Parallel: Emojis + DB-Stats
+    const [emojis, dbStats] = await Promise.all([
+      fetchEmojis(),
+      fetchDbStats()
+    ]);
+
+    STATE.all = emojis;
+    loaderText.textContent = `✅ ${emojis.length} Emojis geladen`;
+
+    if (dbStats) {
+      console.log('DB-Info:', dbStats);
+    }
+
+    resetAndRender(STATE.all);
+    updateStats();
+
+    setTimeout(() => {
+      loader.classList.add('hidden');
+      setTimeout(() => loader.remove(), 400);
+    }, 300);
+
+  } catch (err) {
+    setServerStatus(false, `🔴 Server offline: ${err.message}`);
+    loaderText.textContent = `❌ Fehler: ${err.message}`;
+    counter.textContent = 'Fehler beim Laden';
+    setTimeout(() => {
+      loader.classList.add('hidden');
+      setTimeout(() => loader.remove(), 400);
+    }, 1500);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
