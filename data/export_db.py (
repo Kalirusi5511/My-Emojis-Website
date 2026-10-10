@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""
+Exportiert alle Emojis aus einer SQLite-Datenbank in eine emojis.json
+für die statische GitHub-Pages-Website.
+"""
+import sqlite3
+import json
+import sys
+from pathlib import Path
+
+# ==== HIER ANPASSEN ====
+DB_PATH = "emojis.db"          # Pfad zu deiner SQLite-DB
+TABLE   = "emojis"             # Tabellenname
+COLUMN  = "emoji"              # Spalte mit dem Emoji-Zeichen
+OUTPUT  = "emojis.json"        # Zieldatei
+# =======================
+
+def export(db_path: str, table: str, column: str, output: str) -> None:
+    db_file = Path(db_path)
+    if not db_file.exists():
+        print(f"❌ Datenbank nicht gefunden: {db_path}")
+        sys.exit(1)
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Sicherheitscheck: Spalte existiert?
+    cur.execute(f"PRAGMA table_info({table})")
+    cols = [row["name"] for row in cur.fetchall()]
+    if column not in cols:
+        print(f"❌ Spalte '{column}' nicht in Tabelle '{table}'. Vorhanden: {cols}")
+        conn.close()
+        sys.exit(1)
+
+    cur.execute(f"SELECT {column} FROM {table} WHERE {column} IS NOT NULL AND {column} != ''")
+    rows = cur.fetchall()
+    conn.close()
+
+    emojis = [r[column] for r in rows]
+    # Duplikate entfernen, Reihenfolge behalten
+    seen = set()
+    unique = []
+    for e in emojis:
+        if e not in seen:
+            seen.add(e)
+            unique.append(e)
+
+    data = {
+        "count": len(unique),
+        "emojis": unique
+    }
+
+    with open(output, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+
+    size_kb = Path(output).stat().st_size / 1024
+    print(f"✅ {len(unique)} Emojis → {output} ({size_kb:.1f} KB)")
+
+if __name__ == "__main__":
+    export(DB_PATH, TABLE, COLUMN, OUTPUT)
