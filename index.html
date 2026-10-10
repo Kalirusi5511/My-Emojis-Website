@@ -54,8 +54,7 @@
     color: #888;
     border: 1px solid var(--border);
   }
-
-  .server-badge.online { color: var(--success); border-color: var(--success); }
+  .server-badge.online  { color: var(--success); border-color: var(--success); }
   .server-badge.offline { color: #ef4444; border-color: #ef4444; }
 
   .toolbar {
@@ -85,7 +84,6 @@
     font-size: 0.9rem;
     outline: none;
   }
-
   .search:focus { border-color: var(--accent); }
 
   .size-btn {
@@ -97,7 +95,6 @@
     cursor: pointer;
     font-size: 0.8rem;
   }
-
   .size-btn.active {
     background: var(--accent);
     color: #fff;
@@ -111,11 +108,7 @@
     margin-bottom: 10px;
   }
 
-  .grid-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 8px;
-  }
+  .grid-container { max-width: 1400px; margin: 0 auto; padding: 8px; }
 
   .grid {
     display: grid;
@@ -123,9 +116,8 @@
     gap: 4px;
     justify-content: center;
   }
-
   .grid.large { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); }
-  .grid.xl { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
+  .grid.xl    { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
 
   .e {
     aspect-ratio: 1;
@@ -140,26 +132,12 @@
     background: transparent;
     transition: transform 0.1s, background 0.1s;
   }
-
   .grid.large .e { font-size: 34px; }
-  .grid.xl .e { font-size: 46px; }
+  .grid.xl .e    { font-size: 46px; }
 
-  .e:hover {
-    background: #2a2a3a;
-    transform: scale(1.2);
-    z-index: 10;
-    position: relative;
-  }
-
-  .e:active {
-    transform: scale(1.1);
-    background: var(--accent);
-  }
-
-  .e.copied {
-    background: var(--success) !important;
-    animation: pulse 0.3s;
-  }
+  .e:hover { background: #2a2a3a; transform: scale(1.2); z-index: 10; position: relative; }
+  .e:active { transform: scale(1.1); background: var(--accent); }
+  .e.copied { background: var(--success) !important; animation: pulse 0.3s; }
 
   @keyframes pulse {
     0% { transform: scale(1); }
@@ -183,11 +161,7 @@
     pointer-events: none;
     z-index: 1000;
   }
-
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   .loader {
     position: fixed;
@@ -200,7 +174,6 @@
     z-index: 9999;
     transition: opacity 0.3s;
   }
-
   .loader.hidden { opacity: 0; pointer-events: none; }
 
   .loader-spinner {
@@ -211,7 +184,6 @@
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
-
   .loader-text {
     margin-top: 16px;
     color: #888;
@@ -219,7 +191,6 @@
     text-align: center;
     padding: 0 20px;
   }
-
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
@@ -227,14 +198,14 @@
 
 <div class="loader" id="loader">
   <div class="loader-spinner"></div>
-  <div class="loader-text" id="loaderText">⏳ Verbinde mit Server...</div>
+  <div class="loader-text" id="loaderText">⏳ Lade Emojis...</div>
 </div>
 
 <h1>🚀 Emoji Ultra</h1>
-<p class="info">Emojis aus SQLite-Datenbank</p>
+<p class="info">Emojis aus lokaler JSON-Datenbank</p>
 
 <div style="text-align: center; margin-bottom: 8px;">
-  <span class="server-badge" id="serverBadge">🔌 Verbinde...</span>
+  <span class="server-badge" id="serverBadge">🔌 Lade...</span>
 </div>
 
 <div class="stats" id="stats">Bereit</div>
@@ -256,11 +227,9 @@
 
 <script>
 // ============================================================
-// KONFIGURATION
+// KONFIGURATION – statische JSON statt API
 // ============================================================
-const API_BASE = window.location.origin;
-const API_EMOJIS = API_BASE + '/api/emojis';
-const API_STATS = API_BASE + '/api/stats';
+const EMOJIS_JSON = 'emojis.json';
 
 // ============================================================
 // STATE
@@ -291,45 +260,29 @@ const serverBadge = $('serverBadge');
 const sizeBtns = document.querySelectorAll('.size-btn');
 
 // ============================================================
-// SERVER-STATUS
+// STATUS-BADGE
 // ============================================================
-function setServerStatus(online, text) {
+function setStatus(online, text) {
   serverBadge.textContent = text;
   serverBadge.className = 'server-badge ' + (online ? 'online' : 'offline');
 }
 
 // ============================================================
-// EMOJIS VOM SERVER LADEN
+// EMOJIS LADEN
 // ============================================================
 async function fetchEmojis() {
   const t0 = now();
-  const res = await fetch(API_EMOJIS);
-
+  const res = await fetch(EMOJIS_JSON + '?v=' + Date.now()); // Cache-Busting
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const data = await res.json();
+  const list = Array.isArray(data) ? data : data.emojis;
 
-  if (!data.emojis || !Array.isArray(data.emojis)) {
-    throw new Error('Ungültiges Format');
-  }
+  if (!list || !Array.isArray(list)) throw new Error('Ungültiges Format');
 
-  STATE.timings.server = (now() - t0).toFixed(1);
-  setServerStatus(true, `🟢 Server online (${data.emojis.length} Emojis)`);
-  return data.emojis;
-}
-
-// ============================================================
-// DB-STATS LADEN
-// ============================================================
-async function fetchDbStats() {
-  try {
-    const res = await fetch(API_STATS);
-    const data = await res.json();
-    console.log(`💾 DB: ${data.total} Emojis, ${data.db_size_kb} KB`);
-    return data;
-  } catch (e) {
-    return null;
-  }
+  STATE.timings.load = (now() - t0).toFixed(1);
+  setStatus(true, `🟢 ${list.length} Emojis geladen`);
+  return list;
 }
 
 // ============================================================
@@ -344,7 +297,6 @@ function renderBatch() {
 
   const start = STATE.rendered;
   const end = Math.min(start + STATE.batchSize, STATE.filtered.length);
-
   const fragment = document.createDocumentFragment();
 
   for (let i = start; i < end; i++) {
@@ -376,9 +328,6 @@ function renderBatch() {
   });
 }
 
-// ============================================================
-// RESET & NEU RENDERN
-// ============================================================
 function resetAndRender(newList) {
   grid.innerHTML = "";
   STATE.filtered = newList;
@@ -387,7 +336,7 @@ function resetAndRender(newList) {
 }
 
 // ============================================================
-// SCROLL-HANDLER
+// SCROLL
 // ============================================================
 let scrollRaf = null;
 window.addEventListener('scroll', () => {
@@ -401,7 +350,7 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ============================================================
-// CLICK-DELEGATION
+// CLICK → COPY
 // ============================================================
 grid.addEventListener('click', (e) => {
   const t = e.target.closest('.e');
@@ -409,9 +358,6 @@ grid.addEventListener('click', (e) => {
   copyEmoji(t.dataset.emoji, t);
 });
 
-// ============================================================
-// COPY
-// ============================================================
 async function copyEmoji(emoji, el) {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -446,13 +392,12 @@ function showToast(msg) {
 }
 
 // ============================================================
-// SIZE BUTTONS
+// SIZE-BUTTONS
 // ============================================================
 sizeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     sizeBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
     const s = btn.dataset.size;
     grid.classList.remove('large', 'xl');
     if (s === 'large') grid.classList.add('large');
@@ -491,28 +436,18 @@ search.addEventListener('input', () => {
 function updateStats() {
   const t = STATE.timings;
   stats.textContent =
-    `⚡ Server: ${t.server || '–'}ms | Render: ${t.render || '–'}ms | Filter: ${t.filter || '–'}ms`;
+    `⚡ Load: ${t.load || '–'}ms | Render: ${t.render || '–'}ms | Filter: ${t.filter || '–'}ms`;
 }
 
 // ============================================================
-// INITIALISIERUNG
+// INIT
 // ============================================================
 async function init() {
-  loaderText.textContent = '🌐 Lade Emojis aus DB...';
-
+  loaderText.textContent = '🌐 Lade emojis.json...';
   try {
-    // Parallel: Emojis + DB-Stats
-    const [emojis, dbStats] = await Promise.all([
-      fetchEmojis(),
-      fetchDbStats()
-    ]);
-
+    const emojis = await fetchEmojis();
     STATE.all = emojis;
     loaderText.textContent = `✅ ${emojis.length} Emojis geladen`;
-
-    if (dbStats) {
-      console.log('DB-Info:', dbStats);
-    }
 
     resetAndRender(STATE.all);
     updateStats();
@@ -521,9 +456,8 @@ async function init() {
       loader.classList.add('hidden');
       setTimeout(() => loader.remove(), 400);
     }, 300);
-
   } catch (err) {
-    setServerStatus(false, `🔴 Server offline: ${err.message}`);
+    setStatus(false, `🔴 Fehler: ${err.message}`);
     loaderText.textContent = `❌ Fehler: ${err.message}`;
     counter.textContent = 'Fehler beim Laden';
     setTimeout(() => {
